@@ -4,8 +4,7 @@
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "npm run build",
-    "vercel-build": "prisma generate && npm run build",
+    "build": "prisma generate && npm run build:app",
     "start": "nodemon server.js"
   },
   "keywords": [],
