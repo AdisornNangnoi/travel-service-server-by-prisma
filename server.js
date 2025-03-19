@@ -13,6 +13,9 @@ app.use(cors()); //เรียกข้ามโดเมน
 app.use(express.json()); //เรียกใช้ json
 app.use('/traveller', travellerRoutes);
 app.use('/travel', travelRoutes);
+//กำหนดการเข้าถึงรูปภาพ
+app.use('/images/travel', express.static('images/travel'));
+app.use('/images/traveller', express.static('images/traveller'));
 
 app.get('/', (req, res) => {
     res.json({
