@@ -197,24 +197,27 @@ exports.editTravel = async (req, res) => {
 // delete Travel
 exports.deleteTravel = async (req, res) => {
   try {
-    //-------
     const result = await prisma.travel_tb.delete({
       where: {
         travelId: Number(req.params.travelId),
       },
     });
+
+    // Delete the image from Cloudinary if it exists
     if (result.travelImage) {
-      fs.unlinkSync("images/travel/" + result.travelImage);
+      const publicId = result.travelImage.split("/").pop().split(".")[0]; // Extract public_id from URL
+      await cloudinary.uploader.destroy(`images/travel/${publicId}`);
     }
-    //-------
+
     res.status(200).json({
-      message: "Travel deeleted successfully",
+      message: "Travel deleted successfully",
       data: result,
     });
   } catch (error) {
     res.status(500).json({
-      message: error.message,
+      message: "Error deleting travel: " + error.message,
     });
   }
 };
+
 //-------------------------------------------------------------
