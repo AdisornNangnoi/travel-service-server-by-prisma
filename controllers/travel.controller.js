@@ -7,20 +7,45 @@ const fs = require("fs");
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
-//Travel Image upload function================================================
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "images/travel");
-  },
-  filename: function (req, file, cb) {
-    cb(
-      null,
-      "travel_" +
-        Math.floor(Math.random() * Date.now()) +
-        path.extname(file.originalname)
-    );
-  },
+//ใช้ cloudinary ในการอัพโหลดรูปภาพ
+const { v2: cloudinary } = require("cloudinary");
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+
+// Configuration
+cloudinary.config({
+  cloud_name: "dr1f4f8mr",
+  api_key: "495799165433341",
+  api_secret: "yKnkM6OpT_oQhdvj5PYaob0hnpw", // Click 'View API Keys' above to copy your API secret
 });
+
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: async (req, file) => {
+    const newFile = "travel_" + Math.floor(Math.random() * Date.now()); // The name of the folder in Cloudinary
+
+    return {
+      folder: "images/travel", // The name of the folder in Cloudinary
+      allowed_formats: ["jpg", "png", "jpeg", "gif"], // Allowed formats
+      public_id: newFile, // The name of the file in Cloudinary
+    };
+  },
+}); // Correct folder path,
+
+//Travel Image upload function================================================
+// const storage = multer.diskStorage({
+//   destination: function (req, file, cb) {
+//     cb(null, "images/travel");
+//   },
+//   filename: function (req, file, cb) {
+//     cb(
+//       null,
+//       "travel_" +
+//         Math.floor(Math.random() * Date.now()) +
+//         path.extname(file.originalname)
+//     );
+//   },
+// });
+
 exports.uploadTravel = multer({
   storage: storage,
   limits: {
@@ -39,30 +64,30 @@ exports.uploadTravel = multer({
 
 // get one Travel
 exports.getTravel = async (req, res) => {
-    try {
-        //-------
-        const result = await prisma.travel_tb.findFirst({
-            where: {
-                travelId: Number(req.params.travelId),
-            },
-            });
-      if (result) {
-        res.status(200).json({
-          message: "Travel get successfully",
-          data: result,
-        });
-      } else {
-        res.status(404).json({
-          message: "Travel get failed",
-          data: null,
-        });
-      }
-    } catch (error) {
-      res.status(500).json({
-        message: error.message,
+  try {
+    //-------
+    const result = await prisma.travel_tb.findFirst({
+      where: {
+        travelId: Number(req.params.travelId),
+      },
+    });
+    if (result) {
+      res.status(200).json({
+        message: "Travel get successfully",
+        data: result,
+      });
+    } else {
+      res.status(404).json({
+        message: "Travel get failed",
+        data: null,
       });
     }
-  };
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
 //-------------------------------------------------------------
 
 // get Travel

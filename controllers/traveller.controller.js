@@ -7,20 +7,45 @@ const fs = require("fs");
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
-// Traveller Image upload function
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "images/traveller"); // Correct folder path
-  },
-  filename: function (req, file, cb) {
-    cb(
-      null,
-      "traveller_" +
-        Math.floor(Math.random() * Date.now()) +
-        path.extname(file.originalname)
-    );
-  },
+//ใช้ cloudinary ในการอัพโหลดรูปภาพ
+const { v2: cloudinary } = require("cloudinary");
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+
+// Configuration
+cloudinary.config({
+  cloud_name: "dr1f4f8mr",
+  api_key: "495799165433341",
+  api_secret: "yKnkM6OpT_oQhdvj5PYaob0hnpw", // Click 'View API Keys' above to copy your API secret
 });
+
+// Traveller Image upload function
+// const storage = multer.diskStorage({
+//   destination: function (req, file, cb) {
+//     cb(null, "images/traveller"); // Correct folder path
+//   },
+//   filename: function (req, file, cb) {
+//     cb(
+//       null,
+//       "traveller_" +
+//         Math.floor(Math.random() * Date.now()) +
+//         path.extname(file.originalname)
+//     );
+//   },
+// });
+
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: async (req, file) => {
+    const newFile = "traveller_"+Math.floor(Math.random() * Date.now()) // The name of the folder in Cloudinary
+
+    return {
+      folder : "images/traveller", // The name of the folder in Cloudinary
+      allowed_formats: ["jpg", "png", "jpeg", "gif"], // Allowed formats
+      public_id: newFile, // The name of the file in Cloudinary
+    };
+  },
+}); // Correct folder path,
+
 //---------------------------------------------
 exports.uploadTraveller = multer({
   storage: storage,
@@ -116,7 +141,7 @@ exports.editTraveller = async (req, res) => {
       }
 
       //แก้ไขข้อมูล
-       result = await prisma.traveller_tb.update({
+      result = await prisma.traveller_tb.update({
         where: {
           travellerId: Number(req.params.travellerId),
         },
@@ -129,7 +154,7 @@ exports.editTraveller = async (req, res) => {
       });
     } else {
       //แก้ไขข้อมูล
-       result = await prisma.traveller_tb.update({
+      result = await prisma.traveller_tb.update({
         where: {
           travellerId: Number(req.params.travellerId),
         },
