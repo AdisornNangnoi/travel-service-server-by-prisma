@@ -122,70 +122,76 @@ exports.getAllTravel = async (req, res) => {
 // Create Travel
 exports.createTravel = async (req, res) => {
   try {
+    const { travelPlace, travelStartDate, travelEndDate, travelCostTotal, travellerId } = req.body;
+
+    const travelImage = req.file ? req.file.path : ""; // ใช้ req.file.path เพื่อให้มั่นใจว่า Cloudinary จัดการให้แล้ว
+
     const result = await prisma.travel_tb.create({
       data: {
-        travelPlace: req.body.travelPlace,
-        travelStartDate: req.body.travelStartDate,
-        travelEndDate: req.body.travelEndDate,
-        travelCostTotal: parseFloat(req.body.travelCostTotal),
-        travelImage: req.file ? req.file.secure_url : "", // ใช้ secure_url หรือ url
-        travellerId: Number(req.body.travellerId),
+        travelPlace,
+        travelStartDate,
+        travelEndDate,
+        travelCostTotal: parseFloat(travelCostTotal),
+        travelImage,
+        travellerId: Number(travellerId),
       },
     });
+
     res.status(201).json({
       message: "Travel created successfully",
       data: result,
     });
   } catch (error) {
     res.status(500).json({
-      message: error.message,
+      message: "เกิดข้อผิดพลาด: " + error.message,
     });
   }
 };
+
 //-------------------------------------------------------------
 
 // update Travel
 exports.editTravel = async (req, res) => {
   try {
-    let result = {};
-    if (req.file) {
-      const travel = await prisma.travel_tb.findFirst({
-        where: {
-          travelId: Number(req.params.travelId),
-        },
-      });
-      // ลบรูปภาพเก่าออกจาก Cloudinary (ถ้ามี)
-      if (travel.travelImage) {
-        // แยก public_id ออกจาก URL (อาจต้องปรับตามรูปแบบ URL ของ Cloudinary)
-        const publicId = travel.travelImage.split('/').pop().split('.')[0];
-        cloudinary.uploader.destroy(`images/travel/${publicId}`);
-      }
-      result = await prisma.travel_tb.update({
-        where: {
-          travelId: Number(req.params.travelId),
-        },
-        data: {
-          travellerId: Number(req.body.travellerId),
-          travelPlace: req.body.travelName,
-          travelStartDate: req.body.travelStartDate,
-          travelEndDate: req.body.travelEndDate,
-          travelCostTotal: parseFloat(req.body.travelCostTotal),
-          travelImage: req.file ? req.file.secure_url : "",
-        },
-      });
-    } else {
-      // โค้ดส่วนที่ไม่มีการอัปโหลดรูปภาพ
+    const travel = await prisma.travel_tb.findFirst({
+      where: { travelId: Number(req.params.travelId) },
+    });
+
+    if (!travel) {
+      return res.status(404).json({ message: "ไม่พบข้อมูลที่ต้องการแก้ไข" });
     }
+
+    let updatedData = {
+      travellerId: Number(req.body.travellerId),
+      travelPlace: req.body.travelPlace,
+      travelStartDate: req.body.travelStartDate,
+      travelEndDate: req.body.travelEndDate,
+      travelCostTotal: parseFloat(req.body.travelCostTotal),
+    };
+
+    // ถ้ามีรูปใหม่ ให้ลบรูปเก่าออกจาก Cloudinary
+    if (req.file) {
+      if (travel.travelImage) {
+        const publicId = travel.travelImage.split("/").pop().split(".")[0]; // ดึง public_id ออกจาก URL
+        await cloudinary.uploader.destroy(`images/travel/${publicId}`);
+      }
+      updatedData.travelImage = req.file.path;
+    }
+
+    const result = await prisma.travel_tb.update({
+      where: { travelId: Number(req.params.travelId) },
+      data: updatedData,
+    });
+
     res.status(200).json({
-      message: "Travel updated successfully",
+      message: "อัปเดตข้อมูลสำเร็จ",
       data: result,
     });
   } catch (error) {
-    res.status(500).json({
-      message: error.message,
-    });
+    res.status(500).json({ message: "เกิดข้อผิดพลาด: " + error.message });
   }
 };
+
 //-------------------------------------------------------------
 
 // delete Travel
