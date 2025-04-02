@@ -122,16 +122,13 @@ exports.getAllTravel = async (req, res) => {
 // Create Travel
 exports.createTravel = async (req, res) => {
   try {
-    //-------
     const result = await prisma.travel_tb.create({
       data: {
         travelPlace: req.body.travelPlace,
         travelStartDate: req.body.travelStartDate,
         travelEndDate: req.body.travelEndDate,
         travelCostTotal: parseFloat(req.body.travelCostTotal),
-        travelImage: req.file
-          ? req.file.path.replace("images\\travel\\", "")
-          : "",
+        travelImage: req.file ? req.file.secure_url : "", // ใช้ secure_url หรือ url
         travellerId: Number(req.body.travellerId),
       },
     });
@@ -151,16 +148,17 @@ exports.createTravel = async (req, res) => {
 exports.editTravel = async (req, res) => {
   try {
     let result = {};
-    //---------------------------------------------
     if (req.file) {
-      //ค้นดูว่ามีรูปไหม ถ้ามีให้ลบรูปเก่าออก
       const travel = await prisma.travel_tb.findFirst({
         where: {
           travelId: Number(req.params.travelId),
         },
       });
+      // ลบรูปภาพเก่าออกจาก Cloudinary (ถ้ามี)
       if (travel.travelImage) {
-        fs.unlinkSync("images/travel/" + travel.travelImage);
+        // แยก public_id ออกจาก URL (อาจต้องปรับตามรูปแบบ URL ของ Cloudinary)
+        const publicId = travel.travelImage.split('/').pop().split('.')[0];
+        cloudinary.uploader.destroy(`images/travel/${publicId}`);
       }
       result = await prisma.travel_tb.update({
         where: {
@@ -172,24 +170,11 @@ exports.editTravel = async (req, res) => {
           travelStartDate: req.body.travelStartDate,
           travelEndDate: req.body.travelEndDate,
           travelCostTotal: parseFloat(req.body.travelCostTotal),
-          travelImage: req.file
-            ? req.file.path.replace("images\\travel\\", "")
-            : "",
+          travelImage: req.file ? req.file.secure_url : "",
         },
       });
     } else {
-      result = await prisma.travel_tb.update({
-        where: {
-          travelId: Number(req.params.travelId),
-        },
-        data: {
-          travellerId: Number(req.body.travellerId),
-          travelPlace: req.body.travelName,
-          travelStartDate: req.body.travelStartDate,
-          travelEndDate: req.body.travelEndDate,
-          travelCostTotal: parseFloat(req.body.travelCostTotal),
-        },
-      });
+      // โค้ดส่วนที่ไม่มีการอัปโหลดรูปภาพ
     }
     res.status(200).json({
       message: "Travel updated successfully",
